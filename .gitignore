@@ -24,3 +24,5 @@ data.json
 
 package-lock.json
 otherplugins
+
+update.sh
