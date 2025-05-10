@@ -7,9 +7,6 @@ import WebViewLLMPlugin from '../main';
 export interface MySettings {
 	strict_mode: boolean;
 	vaultDir:string;
-	deepseekFolder: string;
-	doubaoFolder: string;
-	kimiFolder: string;
 }
 
 export const DEFAULT_SETTINGS: MySettings = {
@@ -49,19 +46,5 @@ export class WebViewLLMSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 		
-		new Setting(containerEl)
-				.setName(this.plugin.strings.setting_vault_dir)
-				.addTextArea(text => text
-					.setValue(this.plugin.settings.vaultDir)
-					.onChange(async (value) => {
-						this.plugin.settings.vaultDir = value;
-						await this.plugin.saveSettings();
-					}));
-					
-		this.add_toggle(
-			this.plugin.strings.setting_strict_mode,
-			this.plugin.strings.setting_strict_mode_desc,
-			'strict_mode'
-		);
 	}
 }

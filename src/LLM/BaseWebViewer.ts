@@ -261,7 +261,7 @@ export class BaseWebViewer {
     }
 
     async get_last_content(){
-        return ''
+        return '';
     }
 
     async request(ctx:string,timeout=60){

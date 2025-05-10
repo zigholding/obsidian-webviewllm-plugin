@@ -3,13 +3,13 @@ import {Notice, Plugin, TFile, TFolder } from 'obsidian';
 import { Strings } from 'src/strings';
 import {MySettings,WebViewLLMSettingTab,DEFAULT_SETTINGS} from 'src/setting'
 
+import {BaseWebViewer} from 'src/LLM/BaseWebViewer'
 import {DeepSeek} from 'src/LLM/DeepSeek'
 import {Doubao} from 'src/LLM/Doubao'
 import {Kimi} from 'src/LLM/Kimi'
-import {BaseWebViewer} from 'src/LLM/BaseWebViewer'
-import { addCommands } from 'src/commands';
 import { Yuanbao } from 'src/LLM/Yuanbao';
 import { ChatGPT } from 'src/LLM/ChatGPT';
+import { addCommands } from 'src/commands';
 
 export default class WebViewLLMPlugin extends Plugin {
 	strings : Strings;

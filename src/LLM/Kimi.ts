@@ -126,7 +126,7 @@ export class Kimi extends BaseWebViewer {
 	async get_last_content(){
 		let doc=await this.document();
 		let chats = doc.getElementsByClassName("chat-content-item");
-		return chats[chats.length-1].querySelector('.segment-content-box')?.textContent
+		return chats[chats.length-1].querySelector('.segment-content-box')?.textContent || ""
 	}
 
 	async number_of_receive_msg(){
@@ -171,7 +171,7 @@ export class Kimi extends BaseWebViewer {
 				return this.request(ctx);
 			}
 			new Notice(`${this.name} 不说话`)
-			return null;
+			return "";
 		}
 	}
 

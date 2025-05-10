@@ -142,7 +142,7 @@ export class Doubao extends BaseWebViewer {
 	async get_last_content(){
 		let doc = await this.document();
 		let items = doc.querySelectorAll('.message-content')
-		return items[items.length-1].textContent
+		return items[items.length-1].textContent || '';
 	}
 
 	async request(ctx:string,timeout=60){
