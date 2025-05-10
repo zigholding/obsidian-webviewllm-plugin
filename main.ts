@@ -3,6 +3,8 @@ import {Notice, Plugin, TFile, TFolder } from 'obsidian';
 import { Strings } from 'src/strings';
 import {MySettings,WebViewLLMSettingTab,DEFAULT_SETTINGS} from 'src/setting'
 
+import {EasyAPI} from 'src/easyapi/easyapi'
+
 import {BaseWebViewer} from 'src/LLM/BaseWebViewer'
 import {DeepSeek} from 'src/LLM/DeepSeek'
 import {Doubao} from 'src/LLM/Doubao'
@@ -15,6 +17,9 @@ export default class WebViewLLMPlugin extends Plugin {
 	strings : Strings;
 	settings: MySettings;
 	yaml: string;
+
+	easyapi: EasyAPI
+
 	dialog_suggest: Function
 	dialog_prompt: Function
 
@@ -37,11 +42,9 @@ export default class WebViewLLMPlugin extends Plugin {
 		)
 	}
 
-	get easyapi(){
-		return (this.app as any).plugins.plugins['easyapi']?.api;
-	}
 
 	async _onload_() {
+		this.easyapi = new EasyAPI(this.app);
 		// 初始始化，加载中英文和参数
 		this.strings = new Strings();
 		await this.loadSettings();
