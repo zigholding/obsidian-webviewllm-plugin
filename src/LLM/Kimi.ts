@@ -126,7 +126,7 @@ export class Kimi extends BaseWebViewer {
 	async get_last_content(){
 		let doc=await this.document();
 		let chats = doc.getElementsByClassName("chat-content-item");
-		return chats[chats.length-1].querySelector('.segment-content-box')?.textContent || ""
+		return chats[chats.length-1].querySelector('.segment-content-box')?.textContent ?? ""
 	}
 
 	async number_of_receive_msg(){
@@ -136,7 +136,7 @@ export class Kimi extends BaseWebViewer {
 	}
 
 
-	async request(ctx:string,timeout=60){
+	async request(ctx:string,timeout=60): Promise<string> {
 		let N1 = await this.number_of_receive_msg();
 		
 		await this.paste_msg(ctx);
@@ -156,7 +156,7 @@ export class Kimi extends BaseWebViewer {
 			let doc=await this.document();
 			let chats = doc.getElementsByClassName("chat-content-item");
 			new Notice(`${this.name} 说了点什么`)
-			let res = chats[chats.length-1].querySelector('.segment-content-box')?.textContent;
+			let res = chats[chats.length-1].querySelector('.segment-content-box')?.textContent ?? "";
 			if(res?.contains('当前长文本对话已达20轮')){
 				await this.new_chat();
 				return this.request(ctx);
