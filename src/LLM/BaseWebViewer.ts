@@ -244,7 +244,7 @@ export class BaseWebViewer {
 
     get_safe_ctx(ctx:string){
         let safeCtx = JSON.stringify(ctx.replace(/`/g,'~').replace(/\$/g,'￥'));
-        return safeCtx;
+        return safeCtx.slice(1,safeCtx.length-1);
     }
 
 

@@ -29,4 +29,8 @@ export class EasyAPI {
     get nc(){
         return this.get_plugin('note-chain');
     }
+
+    get cfile(){
+        return this.app.workspace.getActiveFile();
+    }
 }

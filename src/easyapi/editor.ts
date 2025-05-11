@@ -14,6 +14,20 @@ export class EasyEditor {
         this.api = api;
     }
     
+    async get_selection(cancel_selection=false){
+        let editor = (this.app.workspace as any).getActiveFileView()?.editor;
+        if(editor){
+            let sel = editor.getSelection();
+            if(cancel_selection){
+                let cursor = editor.getCursor(); 
+                await editor.setSelection(cursor, cursor);
+            }
+            return sel;
+        }else{
+            return '';
+        }
+    }
+
     async get_code_section(tfile:TFile,ctype='',idx=0,as_simple=true){
         let dvmeta = this.app.metadataCache.getFileCache(tfile);
         let ctx = await this.app.vault.cachedRead(tfile);

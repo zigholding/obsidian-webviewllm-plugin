@@ -1,7 +1,7 @@
 import {Notice, Plugin, TFile, TFolder } from 'obsidian';
 
 import { Strings } from 'src/strings';
-import {MySettings,WebViewLLMSettingTab,DEFAULT_SETTINGS} from 'src/setting'
+import {WebviewLLMSettings,WebViewLLMSettingTab,DEFAULT_SETTINGS} from 'src/setting'
 
 import {EasyAPI} from 'src/easyapi/easyapi'
 
@@ -15,7 +15,7 @@ import { addCommands } from 'src/commands';
 
 export default class WebViewLLMPlugin extends Plugin {
 	strings : Strings;
-	settings: MySettings;
+	settings: WebviewLLMSettings;
 	yaml: string;
 
 	easyapi: EasyAPI
@@ -33,6 +33,8 @@ export default class WebViewLLMPlugin extends Plugin {
 	yuanbao: Yuanbao;
 	chatgpt: ChatGPT;
 
+	auto_chat: boolean;
+
 	async onload() {
 		
 		this.app.workspace.onLayoutReady(
@@ -44,11 +46,12 @@ export default class WebViewLLMPlugin extends Plugin {
 
 
 	async _onload_() {
+		this.auto_chat = true;
 		this.easyapi = new EasyAPI(this.app);
 		// 初始始化，加载中英文和参数
 		this.strings = new Strings();
 		await this.loadSettings();
-
+		this.addSettingTab(new WebViewLLMSettingTab(this.app, this));
 
 		this.llms = [];
 		this.deepseek = new DeepSeek(this.app);
@@ -83,6 +86,98 @@ export default class WebViewLLMPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
+	async cmd_refresh_llms(){
+		let views = this.basewv.views;
+		this.llms = this.llms.slice(0,0);
+		for(let view of views){
+			if((view as any).url.startsWith(this.deepseek.homepage)){
+				let llm = new DeepSeek(this.app);
+				llm.view = view;
+				this.llms.push(llm);
+			}else if((view as any).url.startsWith(this.doubao.homepage)){
+				let llm = new Doubao(this.app);
+				llm.view = view;
+				this.llms.push(llm);
+			}else if((view as any).url.startsWith(this.kimi.homepage)){
+				let llm = new Kimi(this.app);
+				llm.view = view;
+				this.llms.push(llm);
+			}else if((view as any).url.startsWith(this.chatgpt.homepage)){
+				let llm = new ChatGPT(this.app);
+				llm.view = view;
+				this.llms.push(llm);
+			}else if((view as any).url.startsWith(this.yuanbao.homepage)){
+				let llm = new Yuanbao(this.app);
+				llm.view = view;
+				this.llms.push(llm);
+			}
+		}
+	}
 
+	async cmd_chat_sequence(){
+		await this.cmd_refresh_llms();
+		if(this.llms.length==0){
+			return;
+		}
+		this.auto_chat = true;
+		let idx = 0;
+		let llm = this.llms[idx];
+		let rsp = (await llm.get_last_content()) ?? '';
+		while(this.auto_chat && rsp && rsp!=''){
+			if(this.settings.auto_stop.split('\n').contains(rsp.trim())){
+				this.auto_chat = false;
+				break;
+			}
+			idx = idx+1;
+			if(idx==this.llms.length){
+				idx=0;
+			}
+			llm = this.llms[idx];
+			rsp = (await llm.request(rsp)) ?? '';
+		}
+		this.auto_chat = false;
+	}
+
+	async get_prompt(tfile:TFile|null,idx=0){
+		let prompt = await this.easyapi.editor.get_selection();
+		if(prompt!=''){return prompt}
+
+		if(!tfile){return ''}
+
+		let items = this.settings.prompt_name.trim().split('\n');
+		if(items.length==0){return ''}
+
+		for(let item of items){
+			prompt = await this.easyapi.editor.get_code_section(tfile,item,idx);
+			if(prompt){return prompt}
+
+			prompt = await this.easyapi.editor.get_heading_section(tfile,item,idx);
+			if(prompt){return prompt}
+		}
+		return '';
+	}
+
+	async cmd_chat_every_llms(){
+		await this.cmd_refresh_llms();
+
+		let prompt = await this.get_prompt(this.easyapi.cfile)
+		if(prompt==''){return}
+		
+		for(let llm of this.llms){
+			let rsp = await llm.request(prompt);
+		}
+	}
+
+	async cmd_chat_first_llms(){
+		await this.cmd_refresh_llms();
+
+		let prompt = await this.get_prompt(this.easyapi.cfile)
+		if(prompt==''){return}
+		
+		for(let llm of this.llms){
+			await llm.request(prompt);
+			break;
+		}
+	}
 
 }

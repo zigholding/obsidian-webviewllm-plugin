@@ -124,9 +124,9 @@ export class Kimi extends BaseWebViewer {
 	}
 
 	async get_last_content(){
-		let doc=await this.document();
+		let doc = await this.document();
 		let chats = doc.getElementsByClassName("chat-content-item");
-		return chats[chats.length-1].querySelector('.segment-content-box')?.textContent ?? ""
+		return chats[chats.length-1].querySelector('.segment-content-box')?.textContent?.trim() ?? ""
 	}
 
 	async number_of_receive_msg(){
