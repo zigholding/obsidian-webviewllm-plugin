@@ -2,15 +2,15 @@ import { App,Notice } from 'obsidian';
 
 import { BaseWebViewer } from './BaseWebViewer';
 
-export class ChatGPT extends BaseWebViewer {
-    constructor(app: App,homepage='https://chatgpt.com') {
-		super(app, homepage,'ChatGPT');
+export class ChatGLM extends BaseWebViewer {
+    constructor(app: App,homepage='https://chatglm.cn/') {
+		super(app, homepage,'智谱');
 	}
-	
+
 	async new_chat(){
 		let msg = await (this.view as any).webview.executeJavaScript(
 			`
-			document.querySelector('a[data-testid="create-new-chat-button"]').click()
+			document.querySelector('div.subject.active')?.click()
 			`
 		)
 		return msg;
@@ -32,8 +32,7 @@ export class ChatGPT extends BaseWebViewer {
 				// 将异步逻辑封装到一个 async 函数中
 				async function insertTextAndSend(ctx) {
 					// 获取 textarea 并聚焦
-					
-					let item = document.querySelector('div#prompt-textarea.ProseMirror');
+					let item = document.querySelector('textarea');
 					item.focus();
 
 					// 插入文本
@@ -77,12 +76,29 @@ export class ChatGPT extends BaseWebViewer {
 				});
 			}
 			async function click(){
-				let button = document.querySelector('button#composer-submit-button');
-				while(!button){
+				let button = document.querySelector('.enter_icon.el-tooltip__trigger.el-tooltip__trigger:not(.empty)');
+				if(button){
+					let inputEl = document.querySelector('textarea');
+
+					// 2. 通知 Vue/React 数据变了
+					inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+					// 3. 模拟按下 Enter 发送
+					inputEl.dispatchEvent(new KeyboardEvent('keydown', {
+						bubbles: true,
+						cancelable: true,
+						key: 'Enter',
+						code: 'Enter'
+						}));
+					inputEl.dispatchEvent(new KeyboardEvent('keyup', {
+						bubbles: true,
+						cancelable: true,
+						key: 'Enter',
+						code: 'Enter'
+					}));
 					await delay(100);
-					button = document.querySelector('button#composer-submit-button');
+					button = document.querySelector('.enter_icon.el-tooltip__trigger.el-tooltip__trigger:not(.empty)');
 				}
-				button.click();
 			}
 			click();
 			`
@@ -94,16 +110,18 @@ export class ChatGPT extends BaseWebViewer {
 		let msg = await this.webview.executeJavaScript(
 			`
 			function number_of_receive_msg(){
-				let btns = document.querySelectorAll('div[data-message-author-role="assistant"]');
-				let N = parseInt(btns.length);
-				if(N>0){
-					let v = btns[btns.length-1];
-					let btn = v.closest('article').querySelector('button[data-testid="good-response-turn-action-button"]');
-					if(!btn){
-						N = N-1;
-					}
+				let items = document.querySelectorAll('.answer-content-wrap:not(.text-thinking-content)');
+				let N = parseInt(items.length);
+				let v = items[items.length-1];
+				v = v.closest('.answer');
+				v = v.querySelector('div.copy');
+				if(!v){
+					N = 1;
 				}
-				
+				// let button = document.querySelector('.enter_icon.el-tooltip__trigger.el-tooltip__trigger');
+				// if(!button){
+				// 	N = N-1;
+				// }
 				return N;
 			}
 			number_of_receive_msg()
@@ -114,9 +132,8 @@ export class ChatGPT extends BaseWebViewer {
 
 	async get_last_content(){
 		let doc = await this.document();
-		let items = Array.from(doc.querySelectorAll('div[data-message-author-role="assistant"] div.markdown'));
+		let items = Array.from(doc.querySelectorAll('.answer-content-wrap:not(.text-thinking-content)'));
 		let ctx = this.html_to_markdown(items[items.length-1].outerHTML);
 		return ctx;
 	}
-
 }

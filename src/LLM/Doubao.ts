@@ -7,30 +7,6 @@ export class Doubao extends BaseWebViewer {
 		super(app, homepage,'豆包');
 	}
 
-	async click_btn_of_send() {
-		let msg = await this.webview.executeJavaScript(
-			`
-			function delay(ms) {
-				return new Promise(resolve => {
-					setTimeout(resolve, ms);
-				});
-			}
-			async function click(){
-				let button = document.getElementById('flow-end-msg-send');
-				let ariaDisabled = button.getAttribute('aria-disabled');
-				while(ariaDisabled=='false'){
-					button.click();
-					await delay(100);
-					button = document.getElementById('flow-end-msg-send');
-					ariaDisabled = button.getAttribute('aria-disabled');
-				}
-			}
-			click();
-			`
-		)
-		return msg;
-	}
-
 	async paste_msg(ctx:string) {
 		let msg;
 		ctx = this.get_safe_ctx(ctx);
@@ -85,10 +61,34 @@ export class Doubao extends BaseWebViewer {
 		return msg;
 	}
 
-	async get_last_response() {
+	async click_btn_of_send() {
+		let msg = await this.webview.executeJavaScript(
+			`
+			function delay(ms) {
+				return new Promise(resolve => {
+					setTimeout(resolve, ms);
+				});
+			}
+			async function click(){
+				let button = document.getElementById('flow-end-msg-send');
+				let ariaDisabled = button.getAttribute('aria-disabled');
+				while(ariaDisabled=='false'){
+					button.click();
+					await delay(100);
+					button = document.getElementById('flow-end-msg-send');
+					ariaDisabled = button.getAttribute('aria-disabled');
+				}
+			}
+			click();
+			`
+		)
+		return msg;
+	}
+
+	async get_last_content() {
 		let doc = await this.document();
-		let items = doc.querySelectorAll('div[data-testid="receive_message"]');
-		if(items.length<1){return null}
+		let items = doc.querySelectorAll('div[data-testid="receive_message"] div[data-testid="message_text_content"]');
+		if(items.length<1){return ''}
 		
 		let item = items[items.length-1]
 		let ctx = this.html_to_markdown(item.outerHTML);
@@ -131,48 +131,5 @@ export class Doubao extends BaseWebViewer {
 			`
 		)
 		return msg;
-	}
-
-	async number_of_contents(){
-		let doc = await this.document();
-		let items = doc.querySelectorAll('.message-content')
-		return items.length;
-	}
-
-	async get_last_content(){
-		let doc = await this.document();
-		let items = doc.querySelectorAll('.message-content')
-		return items[items.length-1].textContent || '';
-	}
-
-	async request(ctx:string,timeout=60){
-		let view = this.view;
-		let N1 = await this.number_of_receive_msg();
-
-		await this.paste_msg(ctx);
-		await this.delay(1000);
-		await this.click_btn_of_send();
-		let N2 = await this.number_of_receive_msg();
-		
-		while(N2!=N1+1){
-			await this.delay(1000);
-			N2 = await this.number_of_receive_msg();
-			timeout = timeout-1;
-			if(timeout<0){
-				break;
-			}
-		}
-
-		if(N2==N1+1){
-			let doc = await this.document();
-			let items = doc.querySelectorAll('.message-content')
-			N2 = await this.number_of_contents()
-			new Notice(`${this.name} 说了点什么`)
-			return items[N2-1].textContent;
-		}else{
-			new Notice(`${this.name} 不说话`)
-			console.log('Doubao N:',N1,N2)
-			return null;
-		}
 	}
 }

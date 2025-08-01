@@ -94,8 +94,14 @@ export class Yuanbao extends BaseWebViewer {
 		let msg = await this.webview.executeJavaScript(
 			`
 			function number_of_receive_msg(){
-				let btns = document.querySelectorAll('.agent-chat__toolbar > .agent-chat__toolbar__right > .agent-chat__toolbar__item:nth-child(5)');
-				let N = parseInt(btns.length);
+				let items = document.querySelectorAll('.hyc-content-md .hyc-common-markdown');
+				let N = items.length;
+				let v = items[items.length-1]
+				v = v.closest('.agent-chat__list__item__content');
+				v.querySelector('.agent-chat__toolbar__copy__icon')
+				if(!v){
+					N = N-1;
+				}
 				return N;
 			}
 			number_of_receive_msg()

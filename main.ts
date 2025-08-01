@@ -11,6 +11,7 @@ import {Doubao} from 'src/LLM/Doubao'
 import {Kimi} from 'src/LLM/Kimi'
 import { Yuanbao } from 'src/LLM/Yuanbao';
 import { ChatGPT } from 'src/LLM/ChatGPT';
+import {ChatGLM} from 'src/LLM/ChatGLM';
 import { addCommands } from 'src/commands';
 
 export default class WebViewLLMPlugin extends Plugin {
@@ -32,6 +33,7 @@ export default class WebViewLLMPlugin extends Plugin {
 	kimi: Kimi;
 	yuanbao: Yuanbao;
 	chatgpt: ChatGPT;
+	chatglm: ChatGLM;
 
 	auto_chat: boolean;
 
@@ -58,13 +60,15 @@ export default class WebViewLLMPlugin extends Plugin {
 		this.doubao = new Doubao(this.app);
 		this.kimi = new Kimi(this.app);
 		this.yuanbao = new Yuanbao(this.app);
-		this.chatgpt = new ChatGPT(this.app)
+		this.chatgpt = new ChatGPT(this.app);
+		this.chatglm = new ChatGLM(this.app);
 		this.basellms = [
 			this.yuanbao,
 			this.chatgpt,
 			this.kimi,
 			this.doubao,
 			this.deepseek,
+			this.chatglm,
 		]
 		this.basewv = new BaseWebViewer(this.app,'');
 
@@ -93,22 +97,32 @@ export default class WebViewLLMPlugin extends Plugin {
 			if((view as any).url.startsWith(this.deepseek.homepage)){
 				let llm = new DeepSeek(this.app);
 				llm.view = view;
+				this.deepseek.view = view;
 				this.llms.push(llm);
 			}else if((view as any).url.startsWith(this.doubao.homepage)){
 				let llm = new Doubao(this.app);
 				llm.view = view;
+				this.doubao.view = view;
 				this.llms.push(llm);
 			}else if((view as any).url.startsWith(this.kimi.homepage)){
 				let llm = new Kimi(this.app);
 				llm.view = view;
+				this.kimi.view = view;
 				this.llms.push(llm);
 			}else if((view as any).url.startsWith(this.chatgpt.homepage)){
 				let llm = new ChatGPT(this.app);
 				llm.view = view;
+				this.chatgpt.view = view;
 				this.llms.push(llm);
 			}else if((view as any).url.startsWith(this.yuanbao.homepage)){
 				let llm = new Yuanbao(this.app);
 				llm.view = view;
+				this.yuanbao.view = view;
+				this.llms.push(llm);
+			}else if((view as any).url.startsWith(this.chatglm.homepage)){
+				let llm = new ChatGLM(this.app);
+				llm.view = view;
+				this.chatglm.view = view;
 				this.llms.push(llm);
 			}
 		}
@@ -151,7 +165,7 @@ export default class WebViewLLMPlugin extends Plugin {
 			prompt = await this.easyapi.editor.get_code_section(tfile,item,idx);
 			if(prompt){return prompt}
 
-			prompt = await this.easyapi.editor.get_heading_section(tfile,item,idx);
+			prompt = await this.easyapi.editor.get_heading_section(tfile,item,idx, false);
 			if(prompt){return prompt}
 		}
 		return '';

@@ -267,7 +267,6 @@ export class BaseWebViewer {
     async request(ctx:string,timeout=60){
 
 		let N1 = await this.number_of_receive_msg();
-
 		await this.paste_msg(ctx);
 		await this.delay(1000);
 		await this.click_btn_of_send();
@@ -288,7 +287,7 @@ export class BaseWebViewer {
 			return ctx;
 		}else{
 			new Notice(`${this.name} 不说话`)
-			console.log('Doubao N:',N1,N2)
+			console.log(this.name,N1,N2)
 			return null;
 		}
 	}

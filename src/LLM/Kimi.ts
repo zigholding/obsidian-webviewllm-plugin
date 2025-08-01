@@ -3,7 +3,7 @@ import { App,Notice } from 'obsidian';
 import { BaseWebViewer } from './BaseWebViewer';
 
 export class Kimi extends BaseWebViewer {
-	constructor(app: App,homepage='https://kimi.moonshot.cn/') {
+	constructor(app: App,homepage='https://www.kimi.com/') {
 		super(app, homepage,'Kimi');
 	}
 	async new_chat(){
