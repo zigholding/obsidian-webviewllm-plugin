@@ -83,10 +83,10 @@ export class DeepSeek extends BaseWebViewer {
 		return msg;
 	}
 
-	async get_last_response() {
+	async get_last_content() {
 		let doc = await this.document();
 		let items = doc.querySelectorAll('.ds-markdown');
-		if(items.length<1){return null}
+		if(items.length<1){return ''}
 		
 		let item = items[items.length-1]
 		let ctx = this.html_to_markdown(item.outerHTML);
@@ -107,36 +107,4 @@ export class DeepSeek extends BaseWebViewer {
 		return msg;
 	}
 
-	async number_of_contents() {
-		let doc = await this.document();
-		let items = doc.querySelectorAll('.message-content')
-		return items.length;
-	}
-
-	async request(ctx:string,timeout=60) {
-		this.setActiveLeaf();
-		let N1 = await this.number_of_receive_msg();
-
-		await this.paste_msg(ctx);
-		let N2 = await this.number_of_receive_msg();
-		
-		await this.click_btn_of_send();
-
-		while(N2!=N1+1){
-			await this.delay(1000);
-			N2 = await this.number_of_receive_msg();
-			timeout = timeout-1;
-			if(timeout<0){
-				break;
-			}
-		}
-		if(N2==N1+1){
-			let ctx = await this.get_last_response();
-			new Notice(`${this.name} 说了点什么`)
-			return ctx;
-		}else{
-			new Notice(`${this.name} 不说话`)
-			return null;
-		}
-	}
 }

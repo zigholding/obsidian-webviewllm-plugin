@@ -113,6 +113,7 @@ export class ChatGLM extends BaseWebViewer {
 				let items = document.querySelectorAll('.answer-content-wrap:not(.text-thinking-content)');
 				let N = parseInt(items.length);
 				let v = items[items.length-1];
+				if(!v){return 0}
 				v = v.closest('.answer');
 				v = v.querySelector('div.copy');
 				if(!v){

@@ -97,6 +97,7 @@ export class Yuanbao extends BaseWebViewer {
 				let items = document.querySelectorAll('.hyc-content-md .hyc-common-markdown');
 				let N = items.length;
 				let v = items[items.length-1]
+				if(!v){return 0}
 				v = v.closest('.agent-chat__list__item__content');
 				v.querySelector('.agent-chat__toolbar__copy__icon')
 				if(!v){

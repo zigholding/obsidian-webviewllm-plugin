@@ -171,15 +171,19 @@ export default class WebViewLLMPlugin extends Plugin {
 		return '';
 	}
 
-	async cmd_chat_every_llms(){
+	async cmd_chat_every_llms(prompt=''){
 		await this.cmd_refresh_llms();
-
-		let prompt = await this.get_prompt(this.easyapi.cfile)
+		if(prompt==''){
+			prompt = await this.get_prompt(this.easyapi.cfile)
+		}
 		if(prompt==''){return}
 		
+		let promises = [];
 		for(let llm of this.llms){
-			let rsp = await llm.request(prompt);
+			promises.push(llm.request(prompt));
 		}
+		let responses = await Promise.all(promises);
+		return responses;
 	}
 
 	async cmd_chat_first_llms(){
@@ -189,8 +193,8 @@ export default class WebViewLLMPlugin extends Plugin {
 		if(prompt==''){return}
 		
 		for(let llm of this.llms){
-			await llm.request(prompt);
-			break;
+			let rsp = await llm.request(prompt);
+			return rsp;
 		}
 	}
 

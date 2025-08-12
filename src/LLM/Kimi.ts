@@ -90,17 +90,6 @@ export class Kimi extends BaseWebViewer {
 		return msg;
 	}
 
-
-	async get_last_response() {
-		let doc = await this.document();
-		let items = doc.querySelectorAll('.markdown-container');
-		if(items.length<1){return null}
-		
-		let item = items[items.length-1]
-		let ctx = this.html_to_markdown(item.outerHTML);
-		return ctx;
-	}
-
 	async number_of_copy_btns(){
 		let doc = await this.document();
 		let btns = doc.querySelectorAll('svg[name="Like"]')
@@ -126,7 +115,12 @@ export class Kimi extends BaseWebViewer {
 	async get_last_content(){
 		let doc = await this.document();
 		let chats = doc.getElementsByClassName("chat-content-item");
-		return chats[chats.length-1].querySelector('.segment-content-box')?.textContent?.trim() ?? ""
+		let item = chats[chats.length-1].querySelector('.segment-content-box');
+		if(item){
+			return this.html_to_markdown(item.outerHTML)
+		}else{
+			return ''
+		}
 	}
 
 	async number_of_receive_msg(){
