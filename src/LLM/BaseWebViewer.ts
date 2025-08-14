@@ -1,9 +1,6 @@
 
 import { App, View, WorkspaceLeaf, Notice } from 'obsidian';
 
-import * as TurndownService from 'turndown';
-import { gfm } from 'turndown-plugin-gfm';
-
 export class BaseWebViewer {
     app: App;
     homepage: any;
@@ -141,7 +138,22 @@ export class BaseWebViewer {
         return dom;
     }
 
-    html_to_markdown(html: string): string {
+    async get_turndown(){
+        const TurndownService = (await import('turndown')).default;
+        const { gfm } = await import('turndown-plugin-gfm');
+        const turndown = new TurndownService({
+            headingStyle: 'atx',
+            bulletListMarker: '-',
+            codeBlockStyle: 'fenced',
+            emDelimiter: '*',
+            strongDelimiter: '**',
+        });
+    
+        turndown.use(gfm);
+        return turndown;
+    }
+    // 将 html 转换为 markdown
+    async html_to_markdown(html: string): Promise<string> {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
     
@@ -172,15 +184,8 @@ export class BaseWebViewer {
     
         html = doc.body.innerHTML;
     
-        const turndown = new TurndownService({
-            headingStyle: 'atx',
-            bulletListMarker: '-',
-            codeBlockStyle: 'fenced',
-            emDelimiter: '*',
-            strongDelimiter: '**',
-        });
-    
-        turndown.use(gfm);
+        // Dynamic import to avoid bundling issues
+        const turndown = await this.get_turndown();
     
         turndown.addRule('customBlockquote', {
             filter: 'blockquote',

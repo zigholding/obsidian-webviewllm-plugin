@@ -91,7 +91,7 @@ export class Doubao extends BaseWebViewer {
 		if(items.length<1){return ''}
 		
 		let item = items[items.length-1]
-		let ctx = this.html_to_markdown(item.outerHTML);
+		let ctx = await this.html_to_markdown(item.outerHTML);
 		return ctx;
 	}
 
