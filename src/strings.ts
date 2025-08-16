@@ -41,6 +41,22 @@ export class Strings{
         }
     }
 
+    get cmd_paste_ai_contents_as_list2card(){
+        if(this.language=='zh'){
+            return '将AI内容粘贴为卡片'
+        }else{
+            return 'Paste AI content to card list'
+        }
+    }
+
+    get cmd_paste_ai_contents_as_list2tab(){
+        if(this.language=='zh'){
+            return '将AI内容粘贴为标签页'
+        }else{
+            return 'Paste AI content to tab list'
+        }
+    }
+
     get setting_prompt_name(){
         if(this.language=='zh'){
             return '提示词名称（用于标题或代码块）'
@@ -53,6 +69,14 @@ export class Strings{
             return '当AI返回以下文本时自动结束对话'
         }else{
             return 'Auto-stop chat when AI responds with'
+        }
+    }
+    
+    get setting_skip_html_class(){
+        if(this.language=='zh'){
+            return '跳过HTML标签的类名'
+        }else{
+            return 'Skip HTML Class'
         }
     }
 

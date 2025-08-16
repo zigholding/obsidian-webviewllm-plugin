@@ -7,11 +7,23 @@ import WebViewLLMPlugin from '../main';
 export interface WebviewLLMSettings {
 	auto_stop: string;
 	prompt_name: string;
+	skip_html_class: string;
 }
 
 export const DEFAULT_SETTINGS: WebviewLLMSettings = {
 	prompt_name: 'prompt\n提示词',
 	auto_stop: '修改完成\n修改完成。',
+	skip_html_class: `
+class:
+- ybc-li-component_dot # 元宝列表小黑点
+- hyc-common-markdown__ref-list # 元宝网页引用数字
+- hyc-common-markdown__code__hd # 元宝代码复制按钮
+- segment-code-header-content # Kimi代码块复制按钮
+name+class:
+- div search-plus # 搜索
+- div hyc-common-markdown__replace-videoBox-v2 # 元宝视频
+- header table-actions # Kimi 表格操作
+	`.trim()
 }
 
 export class WebViewLLMSettingTab extends PluginSettingTab {
@@ -66,5 +78,14 @@ export class WebViewLLMSettingTab extends PluginSettingTab {
 				})
 			);
 		
+		new Setting(containerEl)
+			.setName(this.plugin.strings.setting_skip_html_class)
+			.addTextArea(text => text
+				.setValue(this.plugin.settings.skip_html_class)
+				.onChange(async (value) => {
+					this.plugin.settings.skip_html_class = value;
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 }

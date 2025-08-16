@@ -137,17 +137,21 @@ export default class WebViewLLMPlugin extends Plugin {
 		let idx = 0;
 		let llm = this.llms[idx];
 		let rsp = (await llm.get_last_content()) ?? '';
+		let prevs:string[] = [];
 		while(this.auto_chat && rsp && rsp!=''){
 			if(this.settings.auto_stop.split('\n').contains(rsp.trim())){
 				this.auto_chat = false;
 				break;
 			}
+			rsp = `${llm.name}_${idx}:\n${rsp}`;
+			prevs.push(rsp);
+			prevs = prevs.slice(-this.llms.length+1);
 			idx = idx+1;
 			if(idx==this.llms.length){
 				idx=0;
 			}
 			llm = this.llms[idx];
-			rsp = (await llm.request(rsp)) ?? '';
+			rsp = (await llm.request(prevs.join('\n\n---\n\n'))) ?? '';
 		}
 		this.auto_chat = false;
 	}
@@ -197,5 +201,159 @@ export default class WebViewLLMPlugin extends Plugin {
 			return rsp;
 		}
 	}
+	
+	async cmd_paste_to_markdown(anyblock='list2tab'){
+		let tfile = this.easyapi.cfile;
+		if(!tfile){return}
 
+		await this.cmd_refresh_llms();
+		
+		let llms = this.llms;
+		if(llms.length==0){return}
+
+		let rsps = await Promise.all(llms.map(x=>x.get_last_content()));
+		let xtx = '';
+		if(llms.length>1){
+			xtx = `[${anyblock}|addClass(ab-col${llms.length})]\n`
+		}
+		for (let i in rsps) {
+			let name = llms[i].name;
+			xtx = xtx + '\n' + `
+- ${name}
+\`\`\`dataviewjs
+dv.span(
+	${JSON.stringify(rsps[i])}
+)
+\`\`\`
+		`.trim().replace(/\n/g, '\n\t');
+		}
+		xtx = '\n\n'+xtx.trim()+'\n\n'
+		this.easyapi.ceditor.replaceSelection(xtx);
+	}
+
+	async get_turndown() {
+        let TurndownService = (await import('turndown')).default;
+        let { gfm } = await import('turndown-plugin-gfm');
+        let turndown = new TurndownService({
+            headingStyle: 'atx',
+            bulletListMarker: '-',
+            codeBlockStyle: 'fenced',
+            emDelimiter: '*',
+            strongDelimiter: '**',
+        });
+
+        turndown.use(gfm);
+        return turndown;
+    }
+
+    // 将 html 转换为 markdown
+    async html_to_markdown(html: string): Promise<string> {
+		let yamljs = this.easyapi.editor.yamljs;
+		let skip_html_class = yamljs.load(this.settings.skip_html_class);
+        let parser = new DOMParser();
+        let doc = parser.parseFromString(html, 'text/html');
+
+        // 找出所有 .hyc-common-markdown__ref-list 节点
+        doc.querySelectorAll('.hyc-common-markdown__ref-list').forEach(div => {
+            let next = div.nextSibling;
+
+            // 如果下一个兄弟节点是纯标点文本
+            if (next && next.nodeType === 3 && /^[\s。、“”，；！？（）【】：]+$/.test(next.nodeValue || '')) {
+                let prev = div.previousSibling;
+
+                // 如果前一个是元素节点（例如 <strong>），找到它里面最后的文本节点
+                if (prev && prev.nodeType === 1) {
+                    const textNodes = prev.childNodes;
+                    if (textNodes.length > 0) {
+                        prev = textNodes[textNodes.length - 1];
+                    }
+                }
+
+                if (prev && prev.nodeType === 3) {
+                    prev.nodeValue = (prev.nodeValue || '').trimEnd() + next.nodeValue;
+                    next.remove(); // 删除原标点节点
+                }
+            }
+
+            div.remove();
+        });
+
+        html = doc.body.innerHTML;
+
+        // Dynamic import to avoid bundling issues
+        const turndown = await this.get_turndown();
+
+        turndown.addRule("fixedTable", {
+            filter: ["table"],
+            replacement: (content, node) => {
+                const rows = [];
+                // 处理表头
+                const headers = Array.from(node.querySelectorAll("th")).map(th =>
+                    (th as any).textContent.replace(/\s+/g, " ").trim()
+                );
+                if (headers.length > 0) {
+                    rows.push(`| ${headers.join(" | ")} |`); // 确保首尾有 |
+                    rows.push(`| ${headers.map(() => "---").join(" | ")} |`); // 对齐行
+                }
+
+                // 处理数据行
+                node.querySelectorAll("tr").forEach(tr => {
+                    const cols = Array.from(tr.querySelectorAll("td")).map(td =>
+                        (td as any).textContent.replace(/\s+/g, " ").trim()
+                    );
+                    if (cols.length > 0) {
+                        rows.push(`| ${cols.join(" | ")} |`); // 每行强制添加 |
+                    }
+                });
+                return rows.join("\n") + "\n\n"; // 每行结尾换行
+            }
+        });
+
+        turndown.addRule('skip_class', {
+            filter: function (node) {
+				if(node.classList){
+					for(let i of skip_html_class.class){
+						if(node.classList.contains(i)){
+							return true;
+						}
+					}
+
+					for(let i of skip_html_class['name+class']){
+						let items = i.split(' ');
+						if(node.nodeName.toLowerCase()==items[0] && node.classList.contains(items[1])){
+							return true;
+						}
+					}
+				}
+				return false;
+            },
+            replacement: function () {
+                return '';
+            }
+        });
+
+        turndown.addRule('customBlockquote', {
+            filter: 'blockquote',
+            replacement: (content: any) => `> ${content.trim()}\n\n`,
+        });
+
+
+		turndown.addRule('hycCodeBlock', {
+			filter: (node) => 
+			  node.nodeName === 'DIV' && node.classList.contains('hyc-code-scrollbar__view'),
+			replacement: (content, node) => {
+			  // 找内部的 <code>
+			  let codeNode = node.querySelector('code');
+			  let lang = '';
+			  if (codeNode && codeNode.className.match(/language-(\w+)/)) {
+				lang = RegExp.$1; // 提取 language-javascript
+			  }
+			  let codeText = codeNode ? codeNode.textContent : node.textContent;
+		  
+			  return `\`\`\`${lang}\n${codeText?.trim()}\n\`\`\``;
+			}
+		  });
+
+        return turndown.turndown(html);
+    }
 }

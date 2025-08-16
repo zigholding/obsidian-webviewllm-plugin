@@ -63,6 +63,22 @@ const cmd_chat_first_llms = (plugin:WebViewLLMPlugin) => ({
 	}
 });
 
+const cmd_paste_ai_contents_as_list2tab = (plugin:WebViewLLMPlugin) => ({
+	id: 'cmd_paste_ai_contents_as_list2tab',
+	name: plugin.strings.cmd_paste_ai_contents_as_list2tab,
+	callback: async () => {
+		await plugin.cmd_paste_to_markdown('list2tab');
+	}
+});
+
+const cmd_paste_ai_contents_as_list2card = (plugin:WebViewLLMPlugin) => ({
+	id: 'cmd_paste_ai_contents_as_list2card',
+	name: plugin.strings.cmd_paste_ai_contents_as_list2card,
+	callback: async () => {
+		await plugin.cmd_paste_to_markdown('list2card');
+	}
+});
+
 const commandBuilders:Array<Function> = [
     
 ];
@@ -74,6 +90,8 @@ const commandBuildersDesktop:Array<Function> = [
 	cmd_chat_every_llms,
 	cmd_chat_sequence,
 	cmd_chat_sequence_stop,
+	cmd_paste_ai_contents_as_list2tab,
+	cmd_paste_ai_contents_as_list2card,
 ];
 
 export function addCommands(plugin:WebViewLLMPlugin) {

@@ -95,6 +95,12 @@ export class Yuanbao extends BaseWebViewer {
 			`
 			function number_of_receive_msg(){
 				let items = document.querySelectorAll('.hyc-content-md .hyc-common-markdown');
+				items = Array.from(items).filter(item => {
+					return item.closest('.hyc-component-reasoner__think-content') == null;
+				});
+				
+				if(items.length==0){return 0}
+				
 				let N = items.length;
 				let v = items[items.length-1]
 				if(!v){return 0}

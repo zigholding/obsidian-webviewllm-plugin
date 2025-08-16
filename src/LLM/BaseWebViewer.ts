@@ -137,94 +137,13 @@ export class BaseWebViewer {
         let dom = parser.parseFromString(html, "text/html");
         return dom;
     }
-
-    async get_turndown(){
-        const TurndownService = (await import('turndown')).default;
-        const { gfm } = await import('turndown-plugin-gfm');
-        const turndown = new TurndownService({
-            headingStyle: 'atx',
-            bulletListMarker: '-',
-            codeBlockStyle: 'fenced',
-            emDelimiter: '*',
-            strongDelimiter: '**',
-        });
     
-        turndown.use(gfm);
-        return turndown;
-    }
-    // 将 html 转换为 markdown
     async html_to_markdown(html: string): Promise<string> {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-    
-        // 找出所有 .hyc-common-markdown__ref-list 节点
-        doc.querySelectorAll('.hyc-common-markdown__ref-list').forEach(div => {
-            const next = div.nextSibling;
-    
-            // 如果下一个兄弟节点是纯标点文本
-            if (next && next.nodeType === 3 && /^[\s。、“”，；！？（）【】]+$/.test(next.nodeValue || '')) {
-                let prev = div.previousSibling;
-    
-                // 如果前一个是元素节点（例如 <strong>），找到它里面最后的文本节点
-                if (prev && prev.nodeType === 1) {
-                    const textNodes = prev.childNodes;
-                    if (textNodes.length > 0) {
-                        prev = textNodes[textNodes.length - 1];
-                    }
-                }
-    
-                if (prev && prev.nodeType === 3) {
-                    prev.nodeValue = (prev.nodeValue || '').trimEnd() + next.nodeValue;
-                    next.remove(); // 删除原标点节点
-                }
-            }
-    
-            div.remove(); // 删除引用列表 div
-        });
-    
-        html = doc.body.innerHTML;
-    
-        // Dynamic import to avoid bundling issues
-        const turndown = await this.get_turndown();
-    
-        turndown.addRule('customBlockquote', {
-            filter: 'blockquote',
-            replacement: (content: any) => `> ${content.trim()}\n\n`,
-        });
-
-        turndown.addRule('skipDiv', {
-            filter: function (node: any) {
-                return (
-                    node.nodeName === 'DIV' &&
-                    node.classList &&
-                    (
-                        node.classList.contains('search-plus') ||
-                        node.classList.contains('hyc-common-markdown__replace-videoBox-v2')
-                    )
-                    
-                );
-            },
-            replacement: function () {
-                return '';
-            }
-        });
-        
-        turndown.addRule('skipTableAction', {
-            filter: function (node: any) {
-                return (
-                    node.nodeName === 'HEADER' &&
-                    node.classList &&
-                    node.classList.contains('table-actions')
-                );
-            },
-            replacement: function () {
-                return '';
-            }
-        });
-    
-        return turndown.turndown(html);
+        let plugin = (this.app as any).plugins.plugins['webview-llm'];
+        let md = await plugin.html_to_markdown(html);
+        return md;
     }
-    
+
     async delay(ms: number) {
         return new Promise(resolve => {
             setTimeout(resolve, ms);
@@ -260,7 +179,7 @@ export class BaseWebViewer {
         return '';
     }
 
-    async request(ctx: string, timeout = 60) {
+    async request(ctx: string, timeout = 120) {
 
         let N1 = await this.number_of_receive_msg();
         await this.paste_msg(ctx);
