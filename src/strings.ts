@@ -72,11 +72,11 @@ export class Strings{
         }
     }
     
-    get setting_skip_html_class(){
+    get setting_turndown_styles(){
         if(this.language=='zh'){
-            return '跳过HTML标签的类名'
+            return 'HTML 转 Markdown 样式'
         }else{
-            return 'Skip HTML Class'
+            return 'HTML to Markdown Styles'
         }
     }
 

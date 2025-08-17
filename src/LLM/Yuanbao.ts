@@ -105,7 +105,7 @@ export class Yuanbao extends BaseWebViewer {
 				let v = items[items.length-1]
 				if(!v){return 0}
 				v = v.closest('.agent-chat__list__item__content');
-				v.querySelector('.agent-chat__toolbar__copy__icon')
+				v = v.querySelector('.agent-chat__toolbar__copy__icon');
 				if(!v){
 					N = N-1;
 				}

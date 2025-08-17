@@ -7,13 +7,13 @@ import WebViewLLMPlugin from '../main';
 export interface WebviewLLMSettings {
 	auto_stop: string;
 	prompt_name: string;
-	skip_html_class: string;
+	turndown_styles: string;
 }
 
 export const DEFAULT_SETTINGS: WebviewLLMSettings = {
 	prompt_name: 'prompt\n提示词',
 	auto_stop: '修改完成\n修改完成。',
-	skip_html_class: `
+	turndown_styles: `
 class:
 - ybc-li-component_dot # 元宝列表小黑点
 - hyc-common-markdown__ref-list # 元宝网页引用数字
@@ -23,6 +23,8 @@ name+class:
 - div search-plus # 搜索
 - div hyc-common-markdown__replace-videoBox-v2 # 元宝视频
 - header table-actions # Kimi 表格操作
+key+value:
+- data-testid doc_card # 元宝文档卡片
 	`.trim()
 }
 
@@ -79,11 +81,11 @@ export class WebViewLLMSettingTab extends PluginSettingTab {
 			);
 		
 		new Setting(containerEl)
-			.setName(this.plugin.strings.setting_skip_html_class)
+			.setName(this.plugin.strings.setting_turndown_styles)
 			.addTextArea(text => text
-				.setValue(this.plugin.settings.skip_html_class)
+				.setValue(this.plugin.settings.turndown_styles)
 				.onChange(async (value) => {
-					this.plugin.settings.skip_html_class = value;
+					this.plugin.settings.turndown_styles = value;
 					await this.plugin.saveSettings();
 				})
 			);
