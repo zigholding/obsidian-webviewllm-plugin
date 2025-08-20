@@ -87,27 +87,17 @@ export class BaseWebViewer {
         if (idx == -1) {
             idx = views.length;
         }
-        while (views.length < idx + 1) {
-            let blank = this.webviews_blank;
-            if (blank.length == 0) {
-                await (this.app as any).commands.executeCommandById('webviewer:open');
-                await this.delay(3000);
-                blank = this.webviews_blank;
+        let n = views.length;
+        while (n < idx + 1) {
+            let plugin = (this.app as any).internalPlugins.getEnabledPluginById("webviewer");
+            if(plugin){
+                await plugin.openUrl(url,true);
+                n = n + 1;
+            }else{
+                break;
             }
-            if (blank.length == 0) {
-                return null;
-            }
-
-            await (blank[0] as any).webview.executeJavaScript(`
-                window.location.href = '${url}';
-            `);
-
-
-            await (blank[0] as any).webview.setAttr('src', url);
-            await this.delay(3000);
-            views = this.get_webviews(url);
-            break;
         }
+        views = this.get_webviews(url);
         if (views.length >= idx + 1) {
             return views[idx];
         } else {
