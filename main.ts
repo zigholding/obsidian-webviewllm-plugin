@@ -175,6 +175,14 @@ export default class WebViewLLMPlugin extends Plugin {
 		return '';
 	}
 
+	async get_last_active_llm(){
+		await this.cmd_refresh_llms();
+		let llm = this.llms.sort(
+			(a:any,b:any)=>b.view.leaf.activeTime-a.view.leaf.activeTime
+		)[0];
+		return llm;
+	}
+
 	async cmd_chat_every_llms(prompt = '') {
 		await this.cmd_refresh_llms();
 		if (prompt == '') {
@@ -191,15 +199,22 @@ export default class WebViewLLMPlugin extends Plugin {
 	}
 
 	async cmd_chat_first_llms() {
-		await this.cmd_refresh_llms();
+		let llm = await this.get_last_active_llm();
+		if(!llm){return}
 
 		let prompt = await this.get_prompt(this.easyapi.cfile)
 		if (prompt == '') { return }
 
-		for (let llm of this.llms) {
-			let rsp = await llm.request(prompt);
-			return rsp;
-		}
+		let rsp = await llm.request(prompt);
+		return rsp;
+	}
+
+	async cmd_paste_last_active_llm(){
+		let llm = await this.get_last_active_llm();
+		if(!llm){return}
+		let rsp = await llm.get_last_content();
+		if(!rsp){return}
+		this.easyapi.ceditor.replaceSelection(rsp);
 	}
 
 	async cmd_paste_to_markdown(anyblock = 'list2tab') {

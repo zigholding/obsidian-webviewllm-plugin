@@ -63,6 +63,15 @@ const cmd_chat_first_llms = (plugin:WebViewLLMPlugin) => ({
 	}
 });
 
+const cmd_paste_last_active_llm = (plugin:WebViewLLMPlugin) => ({
+
+	id: 'cmd_paste_last_active_llm',
+	name: plugin.strings.cmd_paste_last_active_llm,
+	callback: async () => {
+		await plugin.cmd_paste_last_active_llm();
+	}
+});
+
 const cmd_paste_ai_contents_as_list2tab = (plugin:WebViewLLMPlugin) => ({
 	id: 'cmd_paste_ai_contents_as_list2tab',
 	name: plugin.strings.cmd_paste_ai_contents_as_list2tab,
@@ -90,6 +99,7 @@ const commandBuildersDesktop:Array<Function> = [
 	cmd_chat_every_llms,
 	cmd_chat_sequence,
 	cmd_chat_sequence_stop,
+	cmd_paste_last_active_llm,
 	cmd_paste_ai_contents_as_list2tab,
 	cmd_paste_ai_contents_as_list2card,
 ];

@@ -41,6 +41,14 @@ export class Strings{
         }
     }
 
+    get cmd_paste_last_active_llm(){
+        if(this.language=='zh'){
+            return '粘贴上次激活的AI模型内容'
+        }else{
+            return 'Paste Last Active AI Model Content'
+        }
+    }
+
     get cmd_paste_ai_contents_as_list2card(){
         if(this.language=='zh'){
             return '将AI内容粘贴为卡片'
