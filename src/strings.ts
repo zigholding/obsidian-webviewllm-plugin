@@ -49,6 +49,14 @@ export class Strings{
         }
     }
 
+    get cmd_chat_with_target_tfile(){
+        if(this.language=='zh'){
+            return '与目标文件对话'
+        }else{
+            return 'Chat with Target File'
+        }
+    }
+
     get cmd_paste_ai_contents_as_list2card(){
         if(this.language=='zh'){
             return '将AI内容粘贴为卡片'

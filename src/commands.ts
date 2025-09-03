@@ -88,6 +88,14 @@ const cmd_paste_ai_contents_as_list2card = (plugin:WebViewLLMPlugin) => ({
 	}
 });
 
+const cmd_chat_with_target_tfile = (plugin:WebViewLLMPlugin) => ({
+	id: 'cmd_chat_with_target_tfile',
+	name: plugin.strings.cmd_chat_with_target_tfile,
+	callback: async () => {
+		await plugin.cmd_chat_with_target_tfile();
+	}
+});
+
 const commandBuilders:Array<Function> = [
     
 ];
@@ -97,6 +105,7 @@ const commandBuildersDesktop:Array<Function> = [
 	cmd_open_new_llm,
 	cmd_chat_first_llms,
 	cmd_chat_every_llms,
+	cmd_chat_with_target_tfile,
 	cmd_chat_sequence,
 	cmd_chat_sequence_stop,
 	cmd_paste_last_active_llm,

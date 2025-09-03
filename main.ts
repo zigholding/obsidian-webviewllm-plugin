@@ -164,21 +164,37 @@ export default class WebViewLLMPlugin extends Plugin {
 
 		let items = this.settings.prompt_name.trim().split('\n');
 		if (items.length == 0) { return '' }
-
+		
+		// 添加首字母大写和全部大写的变体
+		let allItemsSet = new Set(items);
 		for (let item of items) {
+			// 首字母大写
+			let firstUpper = item.charAt(0).toUpperCase() + item.slice(1);
+			allItemsSet.add(firstUpper);
+			// 全部大写
+			let allUpper = item.toUpperCase();
+			allItemsSet.add(allUpper);
+		}
+		let allItems = Array.from(allItemsSet);
+
+		for (let item of allItems) {
 			prompt = await this.easyapi.editor.get_code_section(tfile, item, idx);
 			if (prompt) { return prompt }
 
 			prompt = await this.easyapi.editor.get_heading_section(tfile, item, idx, false);
 			if (prompt) { return prompt }
 		}
+
+		if (!prompt) {
+			prompt = await this.easyapi.nc.editor.remove_metadata(tfile);
+		}
 		return '';
 	}
 
-	async get_last_active_llm(){
+	async get_last_active_llm() {
 		await this.cmd_refresh_llms();
 		let llm = this.llms.sort(
-			(a:any,b:any)=>b.view.leaf.activeTime-a.view.leaf.activeTime
+			(a: any, b: any) => b.view.leaf.activeTime - a.view.leaf.activeTime
 		)[0];
 		return llm;
 	}
@@ -200,7 +216,7 @@ export default class WebViewLLMPlugin extends Plugin {
 
 	async cmd_chat_first_llms() {
 		let llm = await this.get_last_active_llm();
-		if(!llm){return}
+		if (!llm) { return }
 
 		let prompt = await this.get_prompt(this.easyapi.cfile)
 		if (prompt == '') { return }
@@ -209,11 +225,98 @@ export default class WebViewLLMPlugin extends Plugin {
 		return rsp;
 	}
 
-	async cmd_paste_last_active_llm(){
+	async cmd_chat_with_target_tfile(tfile: TFile | null = null, target: any = null) {
 		let llm = await this.get_last_active_llm();
-		if(!llm){return}
+		if (!llm) {
+			return;
+		}
+		let ea = this.easyapi;
+		let cfile = ea.cfile;
+		if (!tfile) {
+			let tfiles = ea.file.get_all_tfiles_of_tags(["prompt", "\u63D0\u793A\u8BCD"]);
+			if (ea.cfile && tfiles.contains(ea.cfile)) {
+				tfile = ea.cfile;
+			} else {
+				if (ea.cfile && !tfiles.contains(ea.cfile)) {
+					tfiles.unshift(ea.cfile);
+				}
+				tfile = await ea.nc.chain.sugguster_note(tfiles);
+			}
+		}
+		if (!tfile) {
+			return;
+		}
+		let prompt = await this.get_prompt(tfile);
+		if (prompt.contains("${selection}")) {
+			let sel = await this.easyapi.editor.get_selection();
+			if (!sel) {
+				new Notice("请选择文件/Select text first");
+				return;
+			}
+			prompt = prompt.replaceAll("${selection}", sel);
+		}
+
+		if (ea.cfile) {
+			prompt = prompt.replaceAll("${tfile.basename}", ea.cfile.basename);
+			prompt = prompt.replaceAll("${tfile.path}", ea.cfile.path);
+			if (prompt.contains("${tfile.content}")) {
+				let ctx = await ea.nc.editor.remove_metadata(ea.cfile);
+				;
+				prompt = prompt.replaceAll("${tfile.content}", ctx);
+			}
+			if (prompt.contains("${tfile.brothers}")) {
+				let ctx = '- '+ea.nc.chain.get_brothers(ea.cfile).map((x:TFile) => x.basename).join("\n- ");
+				prompt = prompt.replaceAll("${tfile.brothers}", ctx);
+			}
+		}
+		let promptRegex = /\$\{prompt\.([a-zA-Z0-9_]+)\}/g;
+		let matches = new Set<string>();
+		let match;
+		promptRegex.lastIndex = 0;
+		while ((match = promptRegex.exec(prompt)) !== null) {
+			matches.add(match[1]);
+		}
+		for (let placeholder of matches) {
+			let title = placeholder.charAt(0).toUpperCase() + placeholder.slice(1);
+			let ctx = await ea.dialog_prompt(
+				title,
+				`Enter value for ${placeholder}...`
+			);
+			if (ctx === void 0 || ctx === null) {
+				return null;
+			}
+			let regex = new RegExp(`\\$\\{prompt\\.${placeholder}\\}`, "g");
+			prompt = prompt.replace(regex, ctx);
+		}
+		if (typeof target == "string" && target.trim() != "") {
+			prompt = prompt.replace(/\$\{.*?\}/g, target.trim());
+		} else if (Array.isArray(target)) {
+			for (let i of target) {
+				prompt = prompt.replace(/\$\{.*?\}/, i);
+			}
+		} else if (typeof target == "object") {
+			for (let k in target) {
+				prompt = prompt.replace(`\${${k}}`, target[k]);
+			}
+		}
+		if (llm) {
+			let req = await llm.request(prompt);
+			let codes = await ea.editor.extract_code_block(tfile, "js //templater");
+			if (codes.length == 0 && req && true) {
+				if (llm.view) {
+					this.app.workspace.setActiveLeaf(llm.view.leaf);
+				}
+			} else {
+				await ea.tpl.parse_templater(tfile, true, { cfile, llm: req });
+			}
+		}
+	}
+
+	async cmd_paste_last_active_llm() {
+		let llm = await this.get_last_active_llm();
+		if (!llm) { return }
 		let rsp = await llm.get_last_content();
-		if(!rsp){return}
+		if (!rsp) { return }
 		this.easyapi.ceditor.replaceSelection(rsp);
 	}
 
@@ -261,15 +364,15 @@ dv.span(
 		return turndown;
 	}
 
-	get turndown_styles(){
+	get turndown_styles() {
 		let yamljs = this.easyapi.editor.yamljs;
 		let config = yamljs.load(this.settings.turndown_styles);
-		if(!config['pre-process']){config['pre-process'] = []}
-		if(!config['script']){config['script'] = []}
-		if(!config['class']){config['class'] = []}
-		if(!config['name+class']){config['name+class'] = []}
-		if(!config['key+value']){config['key+value'] = []}
-		if(!config['post-process']){config['post-process'] = []}
+		if (!config['pre-process']) { config['pre-process'] = [] }
+		if (!config['script']) { config['script'] = [] }
+		if (!config['class']) { config['class'] = [] }
+		if (!config['name+class']) { config['name+class'] = [] }
+		if (!config['key+value']) { config['key+value'] = [] }
+		if (!config['post-process']) { config['post-process'] = [] }
 		return config;
 	}
 	// 将 html 转换为 markdown
@@ -277,7 +380,7 @@ dv.span(
 		let turndown_styles = this.turndown_styles;
 
 		if (Array.isArray(turndown_styles['pre-process'])) {
-			let eatra = {html:html};
+			let eatra = { html: html };
 			for (let i of turndown_styles['pre-process']) {
 				let htmls = await this.easyapi.tpl.parse_templater(i, true, eatra);
 				html = eatra['html'];
@@ -360,11 +463,11 @@ dv.span(
 					try {
 						for (let i of turndown_styles['name+class']) {
 							let items = i.trim().split(' ');
-							if(items.length==1){
-								if(node.nodeName.toLowerCase() == items[0]){
+							if (items.length == 1) {
+								if (node.nodeName.toLowerCase() == items[0]) {
 									return true;
 								}
-							}else{
+							} else {
 								let reg = new RegExp(items[1]);
 								if (node.nodeName.toLowerCase() == items[0]) {
 									for (let c of Array.from(node.classList)) {
@@ -374,7 +477,7 @@ dv.span(
 									}
 								}
 							}
-							
+
 						}
 					} catch (e) {
 						// do nothing
@@ -427,7 +530,7 @@ dv.span(
 
 		let md = turndown.turndown(html);
 		if (Array.isArray(turndown_styles['post-process'])) {
-			let eatra = {md:md};
+			let eatra = { md: md };
 			for (let i of turndown_styles['post-process']) {
 				await this.easyapi.tpl.parse_templater(i, true, eatra);
 				md = eatra['md'];
