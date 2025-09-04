@@ -164,7 +164,7 @@ export default class WebViewLLMPlugin extends Plugin {
 
 		let items = this.settings.prompt_name.trim().split('\n');
 		if (items.length == 0) { return '' }
-		
+
 		// 添加首字母大写和全部大写的变体
 		let allItemsSet = new Set(items);
 		for (let item of items) {
@@ -228,12 +228,15 @@ export default class WebViewLLMPlugin extends Plugin {
 	async cmd_chat_with_target_tfile(tfile: TFile | null = null, target: any = null) {
 		let llm = await this.get_last_active_llm();
 		if (!llm) {
+			new Notice('请先选择一个LLM');
 			return;
 		}
 		let ea = this.easyapi;
 		let cfile = ea.cfile;
 		if (!tfile) {
-			let tfiles = ea.file.get_all_tfiles_of_tags(["prompt", "\u63D0\u793A\u8BCD"]);
+			let tfiles = ea.file.get_all_tfiles_of_tags(
+				this.settings.prompt_name.trim().split('\n')
+			);
 			if (ea.cfile && tfiles.contains(ea.cfile)) {
 				tfile = ea.cfile;
 			} else {
@@ -246,29 +249,99 @@ export default class WebViewLLMPlugin extends Plugin {
 		if (!tfile) {
 			return;
 		}
+
 		let prompt = await this.get_prompt(tfile);
-		if (prompt.contains("${selection}")) {
-			let sel = await this.easyapi.editor.get_selection();
-			if (!sel) {
-				new Notice("请选择文件/Select text first");
-				return;
-			}
-			prompt = prompt.replaceAll("${selection}", sel);
+
+		const conditionalRegex = /\$\{([a-zA-Z0-9.]+)\?([a-zA-Z0-9.]+)\}/g;
+
+		// 先检查selection是否存在
+		let hasSelection = false;
+		let selectionValue = null;
+		if (prompt.includes("${selection}") || conditionalRegex.test(prompt)) {
+			selectionValue = await this.easyapi.editor.get_selection();
+			hasSelection = !!selectionValue;
 		}
 
-		if (ea.cfile) {
-			prompt = prompt.replaceAll("${tfile.basename}", ea.cfile.basename);
-			prompt = prompt.replaceAll("${tfile.path}", ea.cfile.path);
-			if (prompt.contains("${tfile.content}")) {
-				let ctx = await ea.nc.editor.remove_metadata(ea.cfile);
-				;
-				prompt = prompt.replaceAll("${tfile.content}", ctx);
+		// 处理条件占位符替换
+		prompt = prompt.replace(conditionalRegex, (match: string, primary: string, fallback: string) => {
+			// 这里以selection作为主要判断条件
+			if (primary === "selection") {
+				// 如果selection存在，替换为${selection}
+				// 否则替换为${fallback}
+				return hasSelection ? `\$\{${primary}\}` : `\$\{${fallback}\}`;
 			}
-			if (prompt.contains("${tfile.brothers}")) {
-				let ctx = '- '+ea.nc.chain.get_brothers(ea.cfile).map((x:TFile) => x.basename).join("\n- ");
-				prompt = prompt.replaceAll("${tfile.brothers}", ctx);
+			// 对于其他可能的条件占位符，默认返回原始匹配
+			return match;
+		});
+
+		// 现在处理常规占位符替换
+		const replacements = new Map();
+
+		// 处理选择文本替换
+		if (hasSelection) {
+			replacements.set("${selection}", selectionValue);
+		}
+
+		// 处理文件相关替换
+		if (ea.cfile) {
+			replacements.set("${tfile.basename}", ea.cfile.basename);
+			replacements.set("${tfile.path}", ea.cfile.path);
+
+			if (prompt.includes("${tfile.content}")) {
+				let ctx = await ea.nc.editor.remove_metadata(ea.cfile);
+				replacements.set("${tfile.content}", ctx);
+			}
+
+			if (prompt.includes("${tfile.brothers}")) {
+				let ctx = "- " + ea.nc.chain.get_brothers(ea.cfile).map((x: TFile) => x.basename).join("\n- ");
+				replacements.set("${tfile.brothers}", ctx);
+			}
+
+			if (prompt.includes("${tfile}")) {
+				let ctx = await ea.ccontent;
+				ctx = `Name: ${ea.cfile.basename}\n\nPath: ${ea.cfile.path}\n\n${ctx}`
+				replacements.set("${tfile}", ctx);
 			}
 		}
+
+		if (!hasSelection && prompt.includes("${selection}")) {
+			new Notice("请选择文本/Select text first");
+			return;
+		}
+
+		
+
+		let sparasRegex = /\$\{\[\[(.*?)\]\]\}/g;
+		let amatches = new Set<string>();
+		let amatch;
+		sparasRegex.lastIndex = 0;
+		while ((amatch = sparasRegex.exec(prompt)) !== null) {
+			amatches.add(amatch[1]);
+		}
+		for (let amatch of amatches) {
+			console.log('--->',	amatch);
+			let xfile = ea.file.get_tfile(amatch);
+			if(xfile){
+				let ctx = await ea.tpl.parse_templater(xfile,true,{cfile:ea.cfile});
+				replacements.set(`\$\{[[${amatch}]]\}`, ctx.join('\n'));
+			}
+		}
+
+		const placeholderRegex = new RegExp(
+			Array.from(replacements.keys()).map(placeholder =>
+				placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+			).join('|'),
+			'g'
+		);
+
+		prompt = prompt.replace(placeholderRegex, (match: string) => {
+			if(match.startsWith('${[[')){
+				return replacements.get(match);
+			}else{
+				return replacements.get(match) || match;
+			}
+		});
+
 		let promptRegex = /\$\{prompt\.([a-zA-Z0-9_]+)\}/g;
 		let matches = new Set<string>();
 		let match;

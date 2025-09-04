@@ -91,6 +91,7 @@ const cmd_paste_ai_contents_as_list2card = (plugin:WebViewLLMPlugin) => ({
 const cmd_chat_with_target_tfile = (plugin:WebViewLLMPlugin) => ({
 	id: 'cmd_chat_with_target_tfile',
 	name: plugin.strings.cmd_chat_with_target_tfile,
+	hotkeys: [{ modifiers: ['Alt'], key: 'F' }],
 	callback: async () => {
 		await plugin.cmd_chat_with_target_tfile();
 	}
