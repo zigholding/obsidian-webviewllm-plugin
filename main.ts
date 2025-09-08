@@ -346,14 +346,12 @@ export default class WebViewLLMPlugin extends Plugin {
 		}
 	
 		// --- 调用 LLM ---
-		if (llm) {
-			let req = await llm.request(prompt);
-			let codes = await ea.editor.extract_code_block(tfile, "js //templater");
-			if (codes.length === 0 && req) {
-				if (llm.view) this.app.workspace.setActiveLeaf(llm.view.leaf);
-			} else {
-				await ea.tpl.parse_templater(tfile, true, { cfile, llm: req });
-			}
+		let req = await llm.request(prompt);
+		let codes = await ea.editor.extract_code_block(tfile, "js //templater");
+		if (codes.length === 0 && req) {
+			if (llm.view) this.app.workspace.setActiveLeaf(llm.view.leaf);
+		} else {
+			await ea.tpl.parse_templater(tfile, true, { cfile, llm: req });
 		}
 	}
 	

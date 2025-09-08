@@ -156,15 +156,17 @@ export class EasyEditor {
                 let cursor = editor.getCursor(); 
                 await editor.setSelection(cursor, cursor);
             }
-            return sel;
+            if(sel){
+                return sel;
+            }
         }
         
         let selection = window.getSelection();
-      
-        if (selection && !selection.isCollapsed && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const selectedText = range.toString().trim();
-            return selectedText;
+        if (selection && !selection.isCollapsed) {
+            const selectedText = selection.toString();
+            if(selectedText){
+                return selectedText;
+            }   
         }
         let areas = document.querySelectorAll('textarea');
         for(let area of Array.from(areas)){
