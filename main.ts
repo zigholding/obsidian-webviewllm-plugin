@@ -157,11 +157,8 @@ export default class WebViewLLMPlugin extends Plugin {
 	}
 
 	async get_prompt(tfile: TFile | null, idx = 0) {
-		let prompt = await this.easyapi.editor.get_selection();
-		if (prompt != '') { return prompt }
-
 		if (!tfile) { return '' }
-
+		let prompt:any = '';
 		let items = this.settings.prompt_name.trim().split('\n');
 		if (items.length == 0) { return '' }
 
@@ -231,8 +228,11 @@ export default class WebViewLLMPlugin extends Plugin {
 			new Notice('请先选择一个LLM');
 			return;
 		}
+	
 		let ea = this.easyapi;
 		let cfile = ea.cfile;
+	
+		// --- 确定 tfile ---
 		if (!tfile) {
 			let tfiles = ea.file.get_all_tfiles_of_tags(
 				this.settings.prompt_name.trim().split('\n')
@@ -246,72 +246,59 @@ export default class WebViewLLMPlugin extends Plugin {
 				tfile = await ea.nc.chain.sugguster_note(tfiles);
 			}
 		}
-		if (!tfile) {
-			return;
-		}
-
+		if (!tfile) return;
+	
 		let prompt = await this.get_prompt(tfile);
-
+		// --- 处理条件占位符 ${xxx?yyy} ---
 		const conditionalRegex = /\$\{([a-zA-Z0-9.]+)\?([a-zA-Z0-9.]+)\}/g;
-
-		// 先检查selection是否存在
-		let hasSelection = false;
 		let selectionValue = null;
+		let hasSelection = false;
+	
 		if (prompt.includes("${selection}") || conditionalRegex.test(prompt)) {
 			selectionValue = await this.easyapi.editor.get_selection();
 			hasSelection = !!selectionValue;
 		}
-
-		// 处理条件占位符替换
+	
 		prompt = prompt.replace(conditionalRegex, (match: string, primary: string, fallback: string) => {
-			// 这里以selection作为主要判断条件
 			if (primary === "selection") {
-				// 如果selection存在，替换为${selection}
-				// 否则替换为${fallback}
-				return hasSelection ? `\$\{${primary}\}` : `\$\{${fallback}\}`;
+				return hasSelection ? "${selection}" : "${" + fallback + "}";
 			}
-			// 对于其他可能的条件占位符，默认返回原始匹配
 			return match;
 		});
-
-		// 现在处理常规占位符替换
+	
+		// --- 常规占位符替换 ---
 		const replacements = new Map();
-
-		// 处理选择文本替换
-		if (hasSelection) {
-			replacements.set("${selection}", selectionValue);
-		}
-
-		// 处理文件相关替换
+	
+		if (hasSelection) replacements.set("${selection}", selectionValue);
+	
 		if (ea.cfile) {
 			replacements.set("${tfile.basename}", ea.cfile.basename);
 			replacements.set("${tfile.path}", ea.cfile.path);
-
+	
 			if (prompt.includes("${tfile.content}")) {
 				let ctx = await ea.nc.editor.remove_metadata(ea.cfile);
 				replacements.set("${tfile.content}", ctx);
 			}
-
+	
 			if (prompt.includes("${tfile.brothers}")) {
 				let ctx = "- " + ea.nc.chain.get_brothers(ea.cfile).map((x: TFile) => x.basename).join("\n- ");
 				replacements.set("${tfile.brothers}", ctx);
 			}
-
+	
 			if (prompt.includes("${tfile}")) {
 				let ctx = await ea.ccontent;
-				ctx = `Name: ${ea.cfile.basename}\n\nPath: ${ea.cfile.path}\n\n${ctx}`
+				ctx = `Name: ${ea.cfile.basename}\n\nPath: ${ea.cfile.path}\n\n${ctx}`;
 				replacements.set("${tfile}", ctx);
 			}
 		}
-
+	
 		if (!hasSelection && prompt.includes("${selection}")) {
 			new Notice("请选择文本/Select text first");
 			return;
 		}
-
-		
-
-		let sparasRegex = /\$\{\[\[(.*?)\]\]\}/g;
+	
+		// --- 处理 [[子模板]] ---
+		const sparasRegex = /\$\{\[\[(.*?)\]\]\}/g;
 		let amatches = new Set<string>();
 		let amatch;
 		sparasRegex.lastIndex = 0;
@@ -319,71 +306,57 @@ export default class WebViewLLMPlugin extends Plugin {
 			amatches.add(amatch[1]);
 		}
 		for (let amatch of amatches) {
-			console.log('--->',	amatch);
 			let xfile = ea.file.get_tfile(amatch);
-			if(xfile){
-				let ctx = await ea.tpl.parse_templater(xfile,true,{cfile:ea.cfile});
+			if (xfile) {
+				let ctx = await ea.tpl.parse_templater(xfile, true, { cfile: ea.cfile });
 				replacements.set(`\$\{[[${amatch}]]\}`, ctx.join('\n'));
 			}
 		}
-
+	
+		// --- 应用占位符替换 ---
 		const placeholderRegex = new RegExp(
-			Array.from(replacements.keys()).map(placeholder =>
-				placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-			).join('|'),
+			Array.from(replacements.keys()).map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
 			'g'
 		);
-
-		prompt = prompt.replace(placeholderRegex, (match: string) => {
-			if(match.startsWith('${[[')){
-				return replacements.get(match);
-			}else{
-				return replacements.get(match) || match;
-			}
-		});
-
-		let promptRegex = /\$\{prompt\.([a-zA-Z0-9_]+)\}/g;
-		let matches = new Set<string>();
-		let match;
+		prompt = prompt.replace(placeholderRegex, (m: string) => replacements.get(m) || m);
+	
+		// --- 处理 prompt.xxx 占位符，保证弹窗输入 ---
+		const promptRegex = /\$\{prompt\.([a-zA-Z0-9_]+)\}/g;
+		let promptMatches: Set<string> = new Set();
+		let pMatch;
 		promptRegex.lastIndex = 0;
-		while ((match = promptRegex.exec(prompt)) !== null) {
-			matches.add(match[1]);
+		while ((pMatch = promptRegex.exec(prompt)) !== null) {
+			promptMatches.add(pMatch[1]);
 		}
-		for (let placeholder of matches) {
+	
+		for (let placeholder of promptMatches) {
 			let title = placeholder.charAt(0).toUpperCase() + placeholder.slice(1);
-			let ctx = await ea.dialog_prompt(
-				title,
-				`Enter value for ${placeholder}...`
-			);
-			if (ctx === void 0 || ctx === null) {
-				return null;
-			}
-			let regex = new RegExp(`\\$\\{prompt\\.${placeholder}\\}`, "g");
-			prompt = prompt.replace(regex, ctx);
+			let ctx = await ea.dialog_prompt(title, `Enter value for ${placeholder}...`);
+			if (ctx === void 0 || ctx === null) return null;
+			prompt = prompt.replace(new RegExp(`\\$\\{prompt\\.${placeholder}\\}`, 'g'), ctx);
 		}
-		if (typeof target == "string" && target.trim() != "") {
+	
+		// --- 处理 target 替换 ---
+		if (typeof target === "string" && target.trim() !== "") {
 			prompt = prompt.replace(/\$\{.*?\}/g, target.trim());
 		} else if (Array.isArray(target)) {
-			for (let i of target) {
-				prompt = prompt.replace(/\$\{.*?\}/, i);
-			}
-		} else if (typeof target == "object") {
-			for (let k in target) {
-				prompt = prompt.replace(`\${${k}}`, target[k]);
-			}
+			for (let i of target) prompt = prompt.replace(/\$\{.*?\}/, i);
+		} else if (typeof target === "object") {
+			for (let k in target) prompt = prompt.replace(`\${${k}}`, target[k]);
 		}
+	
+		// --- 调用 LLM ---
 		if (llm) {
 			let req = await llm.request(prompt);
 			let codes = await ea.editor.extract_code_block(tfile, "js //templater");
-			if (codes.length == 0 && req && true) {
-				if (llm.view) {
-					this.app.workspace.setActiveLeaf(llm.view.leaf);
-				}
+			if (codes.length === 0 && req) {
+				if (llm.view) this.app.workspace.setActiveLeaf(llm.view.leaf);
 			} else {
 				await ea.tpl.parse_templater(tfile, true, { cfile, llm: req });
 			}
 		}
 	}
+	
 
 	async cmd_paste_last_active_llm() {
 		let llm = await this.get_last_active_llm();
