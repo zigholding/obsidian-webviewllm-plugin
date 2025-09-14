@@ -78,7 +78,7 @@ export class BaseWebViewer {
     // 获取指定标签
     get_webviews(prefix: string) {
         return this.views.filter(
-            (x: any) => x.url.startsWith(prefix)
+            (x: any) => x?.url?.startsWith(prefix)
         )
     }
 

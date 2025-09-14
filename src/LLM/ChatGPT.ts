@@ -1,13 +1,13 @@
-import { App,Notice } from 'obsidian';
+import { App, Notice } from 'obsidian';
 
 import { BaseWebViewer } from './BaseWebViewer';
 
 export class ChatGPT extends BaseWebViewer {
-    constructor(app: App,homepage='https://chatgpt.com') {
-		super(app, homepage,'ChatGPT');
+	constructor(app: App, homepage = 'https://chatgpt.com') {
+		super(app, homepage, 'ChatGPT');
 	}
-	
-	async new_chat(){
+
+	async new_chat() {
 		let msg = await (this.view as any).webview.executeJavaScript(
 			`
 			document.querySelector('a[data-testid="create-new-chat-button"]').click()
@@ -16,7 +16,7 @@ export class ChatGPT extends BaseWebViewer {
 		return msg;
 	}
 
-	async paste_msg(ctx:string) {
+	async paste_msg(ctx: string) {
 		let msg;
 		ctx = this.get_safe_ctx(ctx);
 		const maxRetries = 1; // 最大重试次数
@@ -64,7 +64,7 @@ export class ChatGPT extends BaseWebViewer {
 			}
 			await this.delay(1000); // 等待一段时间后重试
 		}
-		
+
 		return msg;
 	}
 
@@ -90,7 +90,7 @@ export class ChatGPT extends BaseWebViewer {
 		return msg;
 	}
 
-	async number_of_receive_msg(){
+	async number_of_receive_msg() {
 		let msg = await this.webview.executeJavaScript(
 			`
 			function number_of_receive_msg(){
@@ -112,10 +112,10 @@ export class ChatGPT extends BaseWebViewer {
 		return msg;
 	}
 
-	async get_last_content(){
+	async get_last_content() {
 		let doc = await this.document();
 		let items = Array.from(doc.querySelectorAll('div[data-message-author-role="assistant"] div.markdown'));
-		let ctx = this.html_to_markdown(items[items.length-1].outerHTML);
+		let ctx = this.html_to_markdown(items[items.length - 1].outerHTML);
 		return ctx;
 	}
 

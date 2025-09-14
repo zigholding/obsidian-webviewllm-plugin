@@ -12,6 +12,8 @@ import { Kimi } from 'src/LLM/Kimi'
 import { Yuanbao } from 'src/LLM/Yuanbao';
 import { ChatGPT } from 'src/LLM/ChatGPT';
 import { ChatGLM } from 'src/LLM/ChatGLM';
+import { Gemini } from 'src/LLM/Gemini';
+import { Claude } from 'src/LLM/Claude';
 import { addCommands } from 'src/commands';
 
 export default class WebViewLLMPlugin extends Plugin {
@@ -34,6 +36,8 @@ export default class WebViewLLMPlugin extends Plugin {
 	yuanbao: Yuanbao;
 	chatgpt: ChatGPT;
 	chatglm: ChatGLM;
+	gemini: Gemini;
+	claude: Claude;
 
 	auto_chat: boolean;
 
@@ -62,6 +66,8 @@ export default class WebViewLLMPlugin extends Plugin {
 		this.yuanbao = new Yuanbao(this.app);
 		this.chatgpt = new ChatGPT(this.app);
 		this.chatglm = new ChatGLM(this.app);
+		this.gemini = new Gemini(this.app);
+		this.claude = new Claude(this.app);
 		this.basellms = [
 			this.yuanbao,
 			this.chatgpt,
@@ -69,6 +75,8 @@ export default class WebViewLLMPlugin extends Plugin {
 			this.doubao,
 			this.deepseek,
 			this.chatglm,
+			this.gemini,
+			this.claude,
 		]
 		this.basewv = new BaseWebViewer(this.app, '');
 
@@ -123,6 +131,16 @@ export default class WebViewLLMPlugin extends Plugin {
 				let llm = new ChatGLM(this.app);
 				llm.view = view;
 				this.chatglm.view = view;
+				this.llms.push(llm);
+			} else if ((view as any).url.startsWith(this.gemini.homepage)) {
+				let llm = new Gemini(this.app);
+				llm.view = view;
+				this.gemini.view = view;
+				this.llms.push(llm);
+			} else if ((view as any).url.startsWith(this.claude.homepage)) {
+				let llm = new Claude(this.app);
+				llm.view = view;
+				this.claude.view = view;
 				this.llms.push(llm);
 			}
 		}
