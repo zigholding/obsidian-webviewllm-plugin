@@ -48,7 +48,7 @@ export class Strings{
             return 'Paste Last Active AI Model Content'
         }
     }
-x
+
     get cmd_chat_with_target_tfile(){
         if(this.language=='zh'){
             return '与目标文件对话'

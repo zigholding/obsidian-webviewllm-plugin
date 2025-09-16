@@ -25,6 +25,7 @@ export class Gemini extends BaseWebViewer {
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
 			msg = await this.webview.executeJavaScript(
 				`
+        		(async function() {
 					function delay(ms) {
 						return new Promise(resolve => {
 						setTimeout(resolve, ms);
@@ -33,11 +34,10 @@ export class Gemini extends BaseWebViewer {
 	
 					async function insertTextAndSend(ctx) {
 						let item = document.querySelector('rich-textarea');
-						item.focus();
-	
-						setTimeout(() => {
-							document.execCommand('insertText', false, ctx);
-						}, 1000);
+						let editableDiv = item.querySelector('div.ql-editor[contenteditable="true"]');
+						editableDiv.focus();
+						editableDiv.innerText = ctx;
+						editableDiv.dispatchEvent(new Event('input', { bubbles: true }));
 						let i = 100;
 						while (true) {
 							let button = document.querySelector('button.send-button.submit');
@@ -49,10 +49,11 @@ export class Gemini extends BaseWebViewer {
 							i = i-1;
 							if(i<0){break}
 						}
+						return item.textContent
 					}
-	
-					insertTextAndSend(\`${ctx}\`);
-					`
+					return await insertTextAndSend(\`${ctx}\`);
+				})();
+				`
 			);
 			if (msg) {
 				break;

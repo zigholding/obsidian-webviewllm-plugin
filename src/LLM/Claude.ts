@@ -41,15 +41,9 @@ export class Claude extends BaseWebViewer {
 					let i = 100;
 					while (true) {
 						let button = document.querySelector('button[aria-label="Send message"]');
-						if(!button){
+						if(button.getAttribute('disabled')==''){
 							await delay(100);
 							continue;
-						}
-						let style = window.getComputedStyle(button);
-						if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
-							break;
-						}else {
-							await delay(100);
 						}
 						i = i-1;
 						if(i<0){break}
@@ -80,18 +74,12 @@ export class Claude extends BaseWebViewer {
 				if(!button){
 					return;
 				}
-				let style = window.getComputedStyle(button);
-				let ariaDisabled = style.display === "none" || style.visibility === "hidden" || style.opacity === "0"
-				while(ariaDisabled==false){
-					button.click();
+				
+				while(button.getAttribute('disabled')==''){
 					await delay(100);
 					button = document.querySelector('button[aria-label="Send message"]');
-					if(!button){
-						return;
-					}
-					let style = window.getComputedStyle(button);
-					let ariaDisabled = style.display === "none" || style.visibility === "hidden" || style.opacity === "0"
 				}
+				button.click();
 			}
 			click();
 			`
@@ -107,10 +95,10 @@ export class Claude extends BaseWebViewer {
 				let N = parseInt(items.length);
 				let v = items[items.length-1];
 				if(!v){return 0}
-				v = v.closest('div[data-test-render-count]');;
+				v = v.closest('div[data-test-render-count]');
 				v = v.querySelector('div.w-fit[data-state="closed"]');
 				if(!v){
-					N = 1;
+					N = N-1;
 				}
 				return N;
 			}
