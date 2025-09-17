@@ -161,6 +161,14 @@ export default class WebViewLLMPlugin extends Plugin {
 				this.auto_chat = false;
 				break;
 			}
+			let patterns = this.settings.auto_stop.split('\n');
+			outer: for (let pattern of patterns) {
+				let regex = new RegExp(pattern.trim());
+				if (regex.test(rsp.trim())) {
+					this.auto_chat = false;
+					break outer;
+				}
+			}
 			rsp = `${llm.name}_${idx}:\n${rsp}`;
 			prevs.push(rsp);
 			prevs = prevs.slice(-this.llms.length + 1);
