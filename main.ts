@@ -174,7 +174,7 @@ export default class WebViewLLMPlugin extends Plugin {
 		this.auto_chat = false;
 	}
 
-	async get_prompt(tfile: TFile | null, idx = 0) {
+	async get_prompt(tfile: TFile | null, idx = 0,selection=false) {
 		if (!tfile) { return '' }
 		let prompt:any = '';
 		let items = this.settings.prompt_name.trim().split('\n');
@@ -200,9 +200,16 @@ export default class WebViewLLMPlugin extends Plugin {
 			if (prompt) { return prompt }
 		}
 
+		if(selection && !prompt){
+			prompt = await this.easyapi.editor.get_selection() 
+		}
+
 		if (!prompt) {
 			prompt = await this.easyapi.nc.editor.remove_metadata(tfile);
 		}
+
+		if(prompt){ return prompt}
+		
 		return '';
 	}
 
@@ -217,7 +224,7 @@ export default class WebViewLLMPlugin extends Plugin {
 	async cmd_chat_every_llms(prompt = '') {
 		await this.cmd_refresh_llms();
 		if (prompt == '') {
-			prompt = await this.get_prompt(this.easyapi.cfile)
+			prompt = await this.get_prompt(this.easyapi.cfile,0,true)
 		}
 		if (prompt == '') { return }
 
@@ -233,7 +240,7 @@ export default class WebViewLLMPlugin extends Plugin {
 		let llm = await this.get_last_active_llm();
 		if (!llm) { return }
 
-		let prompt = await this.get_prompt(this.easyapi.cfile)
+		let prompt = await this.get_prompt(this.easyapi.cfile,0,true)
 		if (prompt == '') { return }
 
 		let rsp = await llm.request(prompt);
