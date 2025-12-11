@@ -182,7 +182,7 @@ export default class WebViewLLMPlugin extends Plugin {
 		this.auto_chat = false;
 	}
 
-	async get_prompt(tfile: TFile | null, idx = 0,selection=false) {
+	async get_prompt(tfile: TFile | null, idx = -1,selection=false) {
 		if (!tfile) { return '' }
 		let prompt:any = '';
 		let items = this.settings.prompt_name.trim().split('\n');
@@ -201,10 +201,10 @@ export default class WebViewLLMPlugin extends Plugin {
 		let allItems = Array.from(allItemsSet);
 
 		for (let item of allItems) {
-			prompt = await this.easyapi.editor.get_code_section(tfile, item, idx);
+			prompt = await this.easyapi.editor.get_code_section(tfile, item, -1);
 			if (prompt) { return prompt }
 
-			prompt = await this.easyapi.editor.get_heading_section(tfile, item, idx, false);
+			prompt = await this.easyapi.editor.get_heading_section(tfile, item, -1, false);
 			if (prompt) { return prompt }
 		}
 
@@ -257,10 +257,6 @@ export default class WebViewLLMPlugin extends Plugin {
 
 	async cmd_chat_with_target_tfile(tfile: TFile | null = null, target: any = null) {
 		let llm = await this.get_last_active_llm();
-		if (!llm) {
-			new Notice('请先选择一个LLM');
-			return;
-		}
 	
 		let ea = this.easyapi;
 		let cfile = ea.cfile;
@@ -282,6 +278,7 @@ export default class WebViewLLMPlugin extends Plugin {
 		if (!tfile) return;
 	
 		let prompt = await this.get_prompt(tfile);
+		prompt = prompt.replace(/^\s*%%[\s\S]*?%%/, '').trim();
 		// --- 处理条件占位符 ${xxx?yyy} ---
 		const conditionalRegex = /\$\{([a-zA-Z0-9.]+)\?([a-zA-Z0-9.]+)\}/g;
 		let selectionValue = null;
@@ -379,13 +376,18 @@ export default class WebViewLLMPlugin extends Plugin {
 		}
 	
 		// --- 调用 LLM ---
-		let req = await llm.request(prompt);
-		let codes = await ea.editor.extract_code_block(tfile, "js //templater");
-		if (codes.length === 0 && req) {
-			if (llm.view) this.app.workspace.setActiveLeaf(llm.view.leaf);
-		} else {
-			await ea.tpl.parse_templater(tfile, true, { cfile, llm: req });
+		if(llm){
+			let req = await llm.request(prompt);
+			let codes = await ea.editor.extract_code_block(tfile, "js //templater");
+			if (codes.length === 0 && req) {
+				if (llm.view) this.app.workspace.setActiveLeaf(llm.view.leaf);
+			} else {
+				await ea.tpl.parse_templater(tfile, true, { cfile, llm: req });
+			}
+		}else{
+			await navigator.clipboard.writeText(prompt)
 		}
+		
 	}
 	
 
