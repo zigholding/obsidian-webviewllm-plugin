@@ -276,13 +276,13 @@ export class EasyEditor {
 
         // idx >= 0 时直接取
         if(sections.length==1){
-            return sections[0];
+            selected = sections[0];
         }else if (idx >= 2 && sections[idx]) {
             selected = sections[idx];
         } else {
             // 弹窗选择
             const choices = sections.map(x =>
-                this.get_heading_ctx(ctx,dvmeta.headings??[],x,with_heading)
+                this.get_heading_ctx(ctx,dvmeta?.headings??[],x,with_heading)
             );
 
             const nums = [...Array(sections.length).keys()];
@@ -291,7 +291,6 @@ export class EasyEditor {
             if (sel == null) return;
             selected = sections[sel];
         }
-        console.log('selected',selected)
         return this.get_heading_ctx(ctx,dvmeta.headings??[],selected,with_heading).trim();
     }
 
